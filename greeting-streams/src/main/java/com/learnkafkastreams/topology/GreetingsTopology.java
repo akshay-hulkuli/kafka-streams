@@ -55,7 +55,8 @@ public class GreetingsTopology {
         modifiedStream.print(Printed.<String, Greeting>toSysOut().withLabel("modifiedStream"));
 
         // <></>hird processor - Sink processor
-        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdesUsingGeneric()));
 //        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC);
 
         return streamsBuilder.build();
@@ -80,6 +81,15 @@ public class GreetingsTopology {
         KStream<String, Greeting> greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC, Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes()));
         KStream<String, Greeting> spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_TOPIC,
                 Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+
+        greetingsStream.print(Printed.<String, Greeting>toSysOut().withLabel("greetingsStream"));
+        return greetingsStream.merge(spanishGreetingsStreams);
+    }
+
+    private static KStream<String, Greeting> getMergedStreamWithCustomGenericSerdes(StreamsBuilder streamsBuilder) {
+        KStream<String, Greeting> greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC, Consumed.with(Serdes.String(), SerdesFactory.greetingSerdesUsingGeneric()));
+        KStream<String, Greeting> spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_TOPIC,
+                Consumed.with(Serdes.String(), SerdesFactory.greetingSerdesUsingGeneric()));
 
         greetingsStream.print(Printed.<String, Greeting>toSysOut().withLabel("greetingsStream"));
         return greetingsStream.merge(spanishGreetingsStreams);
