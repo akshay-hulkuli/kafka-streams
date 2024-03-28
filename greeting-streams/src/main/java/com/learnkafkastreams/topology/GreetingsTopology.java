@@ -1,12 +1,13 @@
 package com.learnkafkastreams.topology;
 
+import com.learnkafkastreams.domain.Greeting;
+import com.learnkafkastreams.serdes.SerdesFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Printed;
 import org.apache.kafka.streams.kstream.Produced;
 
@@ -26,40 +27,62 @@ public class GreetingsTopology {
         StreamsBuilder streamsBuilder = new StreamsBuilder();
 
         // First process - Source Processor
-        var greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC, Consumed.with(Serdes.String(), Serdes.String()));
-        var spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_SPANISH_TOPIC, Consumed.with(Serdes.String(), Serdes.String()));
 
-        var mergedStreams = greetingsStream.merge(spanishGreetingsStreams);
-
-        greetingsStream.print(Printed.<String, String>toSysOut().withLabel("greetingsStream"));
-        mergedStreams.print(Printed.<String,String>toSysOut().withLabel("mergedStream"));
+//        KStream<String, String> mergedStreams = getMergedStreamWithDefaultSerdes(streamsBuilder);
+        KStream<String, Greeting> mergedStreams = getMergedStreamWithCustomSerdes(streamsBuilder);
+        mergedStreams.print(Printed.<String, Greeting>toSysOut().withLabel("mergedStream"));
 
         // Second process - Stream processor
         var modifiedStream = mergedStreams
-                .filter((key,value) -> value.length() > 5)
-                .peek((key,value) -> {
-                    log.info("peeking the value after filter, value : {}", value);
-                })
-                .mapValues((readOnlyKeys, value) -> value.toUpperCase())
-                .peek((key,value) -> {
-                    log.info("peeking the value after peek, value : {}", value);
-                })
+//                .filter((key, value) -> value.length() > 5)
+//                .peek((key, value) -> {
+//                    log.info("peeking the value after filter, value : {}", value);
+//                })
+                .mapValues((readOnlyKeys, value) -> new Greeting(value.getMessage().toUpperCase(), value.getTimeStamp()));
+//                .peek((key, value) -> {
+//                    log.info("peeking the value after peek, value : {}", value);
+//                })
 //                .map((key,value) -> KeyValue.pair(key.toUpperCase(), value.toUpperCase()));
 //                  .flatMap((key,value) -> {
 //                      var newValues = Arrays.asList(value.split(""));
 //                      return newValues.stream().map(val -> KeyValue.pair(key, val)).toList();
 //                  })
-                .flatMapValues((readOnlyKey, value) -> {
-                    List<String> newValues = Arrays.asList(value.split(""));
-                    return newValues.stream().map(String::toUpperCase).toList();
-                });
+//                .flatMapValues((readOnlyKey, value) -> {
+//                    List<String> newValues = Arrays.asList(value.split(""));
+//                    return newValues.stream().map(String::toUpperCase).toList();
+//                });
 
-        modifiedStream.print(Printed.<String, String>toSysOut().withLabel("modifiedStream"));
+        modifiedStream.print(Printed.<String, Greeting>toSysOut().withLabel("modifiedStream"));
 
         // <></>hird processor - Sink processor
-        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), Serdes.String()));
+        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC);
 
         return streamsBuilder.build();
+    }
+
+    private static KStream<String, String> getMergedStreamWithDefaultSerdes(StreamsBuilder streamsBuilder) {
+        // building streams using default Serdes,
+        /*
+            var greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC, Consumed.with(Serdes.String(), Serdes.String()));
+            var spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_SPANISH_TOPIC, Consumed.with(Serdes.String(), Serdes.String()));
+        */
+
+        // building streams with Default serdes
+        KStream<String, String> greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC);
+        KStream<String, String> spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_TOPIC);
+
+        greetingsStream.print(Printed.<String, String>toSysOut().withLabel("greetingsStream"));
+        return greetingsStream.merge(spanishGreetingsStreams);
+    }
+
+    private static KStream<String, Greeting> getMergedStreamWithCustomSerdes(StreamsBuilder streamsBuilder) {
+        KStream<String, Greeting> greetingsStream = streamsBuilder.stream(GREETINGS_TOPIC, Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+        KStream<String, Greeting> spanishGreetingsStreams = streamsBuilder.stream(GREETINGS_TOPIC,
+                Consumed.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+
+        greetingsStream.print(Printed.<String, Greeting>toSysOut().withLabel("greetingsStream"));
+        return greetingsStream.merge(spanishGreetingsStreams);
     }
 
 }
