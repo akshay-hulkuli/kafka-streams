@@ -1,5 +1,6 @@
 package com.learnkafkastreams.launcher;
 
+import com.learnkafkastreams.exceptionhandler.StreamsDeserializationExceptionHandler;
 import com.learnkafkastreams.topology.GreetingsTopology;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -9,6 +10,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 
 import java.util.List;
 import java.util.Properties;
@@ -24,6 +26,11 @@ public class GreetingsStreamApp {
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.StringSerde.class);
         properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.StringSerde.class);
+        properties.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
+        properties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, StreamsDeserializationExceptionHandler.class);
+
+
+
         createTopics(properties, List.of(GreetingsTopology.GREETINGS_TOPIC, GreetingsTopology.GREETINGS_UPPERCASE_TOPIC,
                 GreetingsTopology.GREETINGS_SPANISH_TOPIC));
         Topology greetingsTopology = GreetingsTopology.buildTopology();
