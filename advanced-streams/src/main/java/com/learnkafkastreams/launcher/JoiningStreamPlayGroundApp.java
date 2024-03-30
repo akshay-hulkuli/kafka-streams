@@ -13,7 +13,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS;
-import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS_ABBREVATIONS;
+import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS_ABBREVIATIONS;
 
 @Slf4j
 public class JoiningStreamPlayGroundApp {
@@ -30,7 +30,7 @@ public class JoiningStreamPlayGroundApp {
         config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "5000");
 
 
-        createTopics(config, List.of(ALPHABETS,ALPHABETS_ABBREVATIONS ));
+        createTopics(config, List.of(ALPHABETS, ALPHABETS_ABBREVIATIONS));
          var kafkaStreams = new KafkaStreams(kTableTopology, config);
 
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));

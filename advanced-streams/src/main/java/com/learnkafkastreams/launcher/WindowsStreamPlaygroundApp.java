@@ -7,14 +7,11 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS;
-import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS_ABBREVATIONS;
 import static com.learnkafkastreams.topology.ExploreWindowTopology.WINDOW_WORDS;
 
 @Slf4j

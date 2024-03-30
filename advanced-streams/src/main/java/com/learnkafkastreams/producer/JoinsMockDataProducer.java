@@ -5,7 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 
 import static com.learnkafkastreams.producer.ProducerUtil.publishMessageSync;
-import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS_ABBREVATIONS;
+import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS;
+import static com.learnkafkastreams.topology.ExploreJoinsOperatorsTopology.ALPHABETS_ABBREVIATIONS;
 
 @Slf4j
 public class JoinsMockDataProducer {
@@ -22,9 +23,9 @@ public class JoinsMockDataProducer {
 //                "A", "A is the First letter in English Alphabets.",
 //                "B", "B is the Second letter in English Alphabets."
         );
-       // publishMessages(alphabetMap, ALPHABETS);
+        publishMessages(alphabetMap, ALPHABETS);
 
-       // sleep(6000);
+        Thread.sleep(6000);
 
         var alphabetAbbrevationMap = Map.of(
                 "A", "Apple",
@@ -32,7 +33,7 @@ public class JoinsMockDataProducer {
                 ,"C", "Cat."
 
         );
-       publishMessages(alphabetAbbrevationMap, ALPHABETS_ABBREVATIONS);
+       publishMessages(alphabetAbbrevationMap, ALPHABETS_ABBREVIATIONS);
 
         alphabetAbbrevationMap = Map.of(
                 "A", "Airplane",
