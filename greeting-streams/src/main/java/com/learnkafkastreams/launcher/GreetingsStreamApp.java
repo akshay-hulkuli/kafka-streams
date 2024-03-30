@@ -1,5 +1,7 @@
 package com.learnkafkastreams.launcher;
 
+import com.learnkafkastreams.exceptionhandler.StreamProcessCustomErrorHandler;
+import com.learnkafkastreams.exceptionhandler.StreamSerializationExceptionHandler;
 import com.learnkafkastreams.exceptionhandler.StreamsDeserializationExceptionHandler;
 import com.learnkafkastreams.topology.GreetingsTopology;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class GreetingsStreamApp {
         properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.StringSerde.class);
         properties.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
         properties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, StreamsDeserializationExceptionHandler.class);
+        properties.put(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG, StreamSerializationExceptionHandler.class);
 
 
 
@@ -35,6 +38,7 @@ public class GreetingsStreamApp {
                 GreetingsTopology.GREETINGS_SPANISH_TOPIC));
         Topology greetingsTopology = GreetingsTopology.buildTopology();
         KafkaStreams kafkaStreams = new KafkaStreams(greetingsTopology, properties);
+        kafkaStreams.setUncaughtExceptionHandler(new StreamProcessCustomErrorHandler());
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
         try {
             kafkaStreams.start();

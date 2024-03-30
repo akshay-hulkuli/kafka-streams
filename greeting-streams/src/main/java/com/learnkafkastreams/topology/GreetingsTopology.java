@@ -33,6 +33,29 @@ public class GreetingsTopology {
         mergedStreams.print(Printed.<String, Greeting>toSysOut().withLabel("mergedStream"));
 
         // Second process - Stream processor
+//        var modifiedStream = exploreOperators(mergedStreams);
+        var modifiedStream = exploreErrors(mergedStreams);
+
+        modifiedStream.print(Printed.<String, Greeting>toSysOut().withLabel("modifiedStream"));
+
+        // <></>hird processor - Sink processor
+//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdes()));
+        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdesUsingGeneric()));
+//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC);
+
+        return streamsBuilder.build();
+    }
+
+    private static KStream<String, Greeting> exploreErrors(KStream<String, Greeting> modifiedStream) {
+        return modifiedStream.mapValues((readOnlyKey, value) -> {
+            if(value.getMessage().equals("Transient Error")) {
+                throw new IllegalArgumentException(value.getMessage());
+            }
+            return new Greeting(value.getMessage().toUpperCase(), value.getTimeStamp());
+        });
+    }
+
+    private static KStream<String, Greeting> exploreOperators(KStream<String, Greeting> mergedStreams) {
         var modifiedStream = mergedStreams
 //                .filter((key, value) -> value.length() > 5)
 //                .peek((key, value) -> {
@@ -51,15 +74,7 @@ public class GreetingsTopology {
 //                    List<String> newValues = Arrays.asList(value.split(""));
 //                    return newValues.stream().map(String::toUpperCase).toList();
 //                });
-
-        modifiedStream.print(Printed.<String, Greeting>toSysOut().withLabel("modifiedStream"));
-
-        // <></>hird processor - Sink processor
-//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdes()));
-        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC, Produced.with(Serdes.String(), SerdesFactory.greetingSerdesUsingGeneric()));
-//        modifiedStream.to(GREETINGS_UPPERCASE_TOPIC);
-
-        return streamsBuilder.build();
+        return modifiedStream;
     }
 
     private static KStream<String, String> getMergedStreamWithDefaultSerdes(StreamsBuilder streamsBuilder) {
