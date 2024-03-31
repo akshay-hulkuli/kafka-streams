@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -26,12 +27,19 @@ public class WindowsStreamPlaygroundApp {
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "windows-2"); // consumer group
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-        config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "10000");
+        config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "0");
 
         createTopics(config, List.of(WINDOW_WORDS ));
          var kafkaStreams = new KafkaStreams(joinTopology, config);
 
        Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
+        kafkaStreams
+                .schedule(Duration.ofMinutes(1), PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
+                    // Perform any action needed on punctuate
+                    // For example, force a commit to trigger processing of the window
+                    streams.commit();
+                });
+
 
         log.info("Starting Windowed streams");
         kafkaStreams.start();
