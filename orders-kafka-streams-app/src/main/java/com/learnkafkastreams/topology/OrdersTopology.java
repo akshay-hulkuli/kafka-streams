@@ -34,11 +34,11 @@ public class OrdersTopology {
         KStream<String, Order> ordersKStream = streamsBuilder
                 .stream(ORDERS, Consumed.with(Serdes.String(), SerdesFactory.orderSerde())).selectKey((key, value) -> value.locationId());
 
-//        KStream<String, Store> storeKStream = streamsBuilder
-//                .stream(STORES, Consumed.with(Serdes.String(), SerdesFactory.storeSerde()));
+        KTable<String, Store> storeKTable = streamsBuilder
+                .table(STORES, Consumed.with(Serdes.String(), SerdesFactory.storeSerde()), Materialized.as("store-table"));
 
         ordersKStream.print(Printed.<String, Order>toSysOut().withLabel("orderKStream"));
-//        storeKStream.print(Printed.<String, Store>toSysOut().withLabel("storeKStream"));
+        storeKTable.toStream().print(Printed.<String, Store>toSysOut().withLabel("storeKTable"));
 
         ordersKStream.split(Named.as("General-resturant-stream"))
                 .branch(generalPredicate, Branched.withConsumer(generalOrderStream -> {
@@ -47,8 +47,8 @@ public class OrdersTopology {
 //                            .mapValues((readOnlyKey, Order) -> revenueValueMapper.apply(Order))
 //                            .to(GENERAL_ORDERS, Produced.with(Serdes.String(), SerdesFactory.revenueSerde()));
 
-                    aggregateOrdersByCount(generalOrderStream, GENERAL_ORDERS_COUNT);
-                    aggregateOrderByRevenue(generalOrderStream, GENERAL_ORDERS_REVENUE);
+                    aggregateOrdersByCount(generalOrderStream, GENERAL_ORDERS_COUNT, storeKTable);
+                    aggregateOrderByRevenue(generalOrderStream, GENERAL_ORDERS_REVENUE, storeKTable);
 
                 }))
                 .branch(restaurantPredicate, Branched.withConsumer(restaurantOrderStream -> {
@@ -57,15 +57,16 @@ public class OrdersTopology {
 //                            .mapValues((readOnlyKey, Order) -> revenueValueMapper.apply(Order))
 //                            .to(RESTAURANT_ORDERS, Produced.with(Serdes.String(), SerdesFactory.revenueSerde()));
 
-                    aggregateOrdersByCount(restaurantOrderStream, RESTAURANT_ORDERS_COUNT);
-                    aggregateOrderByRevenue(restaurantOrderStream, RESTAURANT_ORDERS_REVENUE);
+                    aggregateOrdersByCount(restaurantOrderStream, RESTAURANT_ORDERS_COUNT, storeKTable);
+                    aggregateOrderByRevenue(restaurantOrderStream, RESTAURANT_ORDERS_REVENUE, storeKTable);
 
                 }));
 
         return streamsBuilder.build();
     }
 
-    private static void aggregateOrderByRevenue(KStream<String, Order> generalOrderStream, String storeName) {
+    private static void aggregateOrderByRevenue(KStream<String, Order> generalOrderStream, String storeName,
+                                                KTable<String, Store> storeKTable) {
 
         Initializer<TotalRevenue> initializer = TotalRevenue::new;
         Aggregator<String, Order, TotalRevenue> aggregator =
@@ -82,15 +83,28 @@ public class OrdersTopology {
                                 .withValueSerde(SerdesFactory.totalRevenueSerde()));
 
         revenueKTable.toStream().print(Printed.<String, TotalRevenue>toSysOut().withLabel(storeName));
+
+        // KTable to KTable join
+
+        ValueJoiner<TotalRevenue, Store, TotalRevenueWithAddress> valueJoiner = TotalRevenueWithAddress::new;
+
+        KTable<String, TotalRevenueWithAddress> joinedKTable = revenueKTable.join(storeKTable, valueJoiner);
+        joinedKTable.toStream().print(Printed.<String, TotalRevenueWithAddress>toSysOut().withLabel("Joined-KTable"));
     }
 
-    private static void aggregateOrdersByCount(KStream<String, Order> generalOrderStream, String storeName) {
+    private static void aggregateOrdersByCount(KStream<String, Order> generalOrderStream, String storeName,
+                                               KTable<String, Store> storeKTable) {
         KTable<String, Long> kTable = generalOrderStream
                 .map((key, value) -> KeyValue.pair(value.locationId(), value))
                 .groupByKey(Grouped.with(Serdes.String(), SerdesFactory.orderSerde()))
                 .count(Named.as(storeName), Materialized.as(storeName));
 
         kTable.toStream().print(Printed.<String, Long>toSysOut().withLabel(storeName));
+
+        ValueJoiner<Long, Store, TotalCountWithAddress> valueJoiner = TotalCountWithAddress::new;
+
+        KTable<String, TotalCountWithAddress> joinedKTable = kTable.join(storeKTable, valueJoiner);
+        joinedKTable.toStream().print(Printed.<String, TotalCountWithAddress>toSysOut().withLabel("Joined-KTable-count"));
 
     }
 }
