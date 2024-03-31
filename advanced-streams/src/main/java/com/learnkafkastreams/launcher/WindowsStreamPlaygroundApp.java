@@ -32,13 +32,13 @@ public class WindowsStreamPlaygroundApp {
         createTopics(config, List.of(WINDOW_WORDS ));
          var kafkaStreams = new KafkaStreams(joinTopology, config);
 
-       Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
-        kafkaStreams
-                .schedule(Duration.ofMinutes(1), PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
-                    // Perform any action needed on punctuate
-                    // For example, force a commit to trigger processing of the window
-                    streams.commit();
-                });
+//       Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
+//        kafkaStreams
+//                .schedule(Duration.ofMinutes(1), PunctuationType.WALL_CLOCK_TIME, (timestamp) -> {
+//                    // Perform any action needed on punctuate
+//                    // For example, force a commit to trigger processing of the window
+//                    streams.commit();
+//                });
 
 
         log.info("Starting Windowed streams");
